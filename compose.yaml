@@ -1,0 +1,32 @@
+services:
+    ollama:
+      image: ollama/ollama
+      container_name: sica_ollama
+      restart: unless-stopped
+      volumes:
+        - sica_ollama_data:/root/.ollama
+        - ./ollama-entrypoint.sh:/entrypoint.sh
+      entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
+    qdrant:
+      image: qdrant/qdrant
+      container_name: sica_qdrant
+      restart: unless-stopped
+      environment:
+        - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+      volumes:
+        - sica_qdrant_data:/qdrant/storage
+    backend:
+      build:
+        context: ./backend
+      container_name: sica_backend
+      restart: unless-stopped
+      ports:
+        - "5050:8080"
+      environment:
+        - VectorStore__QdrantUrl=http://qdrant:6334
+        - VectorStore__QdrantApiKey=${QDRANT_API_KEY}
+        - VectorStore__EmbeddingModelUrl=http://ollama:11434
+
+volumes:
+  sica_ollama_data:
+  sica_qdrant_data:
