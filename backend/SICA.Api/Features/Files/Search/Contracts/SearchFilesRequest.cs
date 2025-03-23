@@ -21,7 +21,7 @@ public class SearchFilesRequest
             {
                 RuleFor(x => x.Query)
                     .NotEmpty()
-                    .Length(3, 100);
+                    .Length(3, 1000);
                 RuleFor(x => x.Count)
                     .LessThanOrEqualTo(10u);
             }
