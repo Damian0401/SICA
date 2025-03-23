@@ -25,8 +25,10 @@ RUN apt-get update \
     libtesseract-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN ln -s /usr/lib/x86_64-linux-gnu/libdl.so.2 /usr/lib/x86_64-linux-gnu/libdl.so
+WORKDIR /app/x64
 RUN ln -s /usr/lib/x86_64-linux-gnu/liblept.so.5 /app/x64/libleptonica-1.85.0.dll.so
 RUN ln -s /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /app/x64/libtesseract54.dll.so
+WORKDIR /app
 
 COPY --from=publish /app/publish .
 ENTRYPOINT [ "dotnet", "SICA.Api.dll" ]
