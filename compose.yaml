@@ -1,32 +1,43 @@
 services:
     ollama:
       image: ollama/ollama
-      container_name: sica_ollama
+      container_name: ollama
       restart: unless-stopped
       volumes:
-        - sica_ollama_data:/root/.ollama
-        - ./ollama-entrypoint.sh:/entrypoint.sh
+        - ollama_data:/root/.ollama
+        - ./scripts/ollama-entrypoint.sh:/entrypoint.sh
       entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
     qdrant:
       image: qdrant/qdrant
-      container_name: sica_qdrant
+      container_name: qdrant
       restart: unless-stopped
       environment:
-        - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+        QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
       volumes:
-        - sica_qdrant_data:/qdrant/storage
+        - qdrant_data:/qdrant/storage
+    azurite:
+      image: mcr.microsoft.com/azure-storage/azurite
+      container_name: azurite
+      command: azurite --blobHost 0.0.0.0 --blobPort 10000 --silent --skipApiVersionCheck
+      restart: unless-stopped
+      environment:
+        AZURITE_ACCOUNTS: ${AZURITE_ACCOUNT_NAME}:${AZURITE_ACCOUNT_KEY}
+      volumes:
+        - azurite_data:/data
     backend:
       build:
         context: ./backend
-      container_name: sica_backend
+      container_name: backend
       restart: unless-stopped
       ports:
         - "5050:8080"
       environment:
-        - VectorStore__QdrantUrl=http://qdrant:6334
-        - VectorStore__QdrantApiKey=${QDRANT_API_KEY}
-        - VectorStore__EmbeddingModelUrl=http://ollama:11434
+        VectorStore__QdrantUrl: http://qdrant:6334
+        VectorStore__QdrantApiKey: ${QDRANT_API_KEY}
+        VectorStore__EmbeddingModelUrl: http://ollama:11434
+        BlobStore__ConnectionString: DefaultEndpointsProtocol=http;AccountName=${AZURITE_ACCOUNT_NAME};AccountKey=${AZURITE_ACCOUNT_KEY};BlobEndpoint=http://azurite:10000/${AZURITE_ACCOUNT_NAME};
 
 volumes:
-  sica_ollama_data:
-  sica_qdrant_data:
+  ollama_data:
+  qdrant_data:
+  azurite_data:

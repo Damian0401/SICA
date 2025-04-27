@@ -1,11 +1,12 @@
 using SICA.Common.Shared;
+using SICA.Tools.TextExtraction.Dtos;
 
 namespace SICA.Tools.TextExtraction.Implementations;
 
 internal sealed class TxtTextExtractionStrategy : ITextExtractionStrategy
 {
     public string Types => TextExtractionFileType.Txt;
-    public async Task<Result<string>> ExtractTextAsync(
+    public async Task<Result<TextExtractionResponseDto>> ExtractTextAsync(
         Stream inputStream,
         TextExtractionLanguage language = TextExtractionLanguage.English,
         CancellationToken cancellationToken = default)
@@ -15,9 +16,13 @@ internal sealed class TxtTextExtractionStrategy : ITextExtractionStrategy
         var content = await streamReader.ReadToEndAsync(cancellationToken);
         if (string.IsNullOrWhiteSpace(content))
         {
-            return Result.Failure<string>("Extracted text is empty.");
+            return Result<TextExtractionResponseDto>.Failure("Extracted text is empty.");
         }
 
-        return Result.Success(content);
+        return Result<TextExtractionResponseDto>.Success(new TextExtractionResponseDto
+        {
+            Content = content,
+            ContentType = "text/plain"
+        });
     }
 }

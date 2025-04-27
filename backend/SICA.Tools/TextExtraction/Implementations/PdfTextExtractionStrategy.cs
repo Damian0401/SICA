@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using SICA.Common.Shared;
+using SICA.Tools.TextExtraction.Dtos;
 using SkiaSharp;
-// using Spire.Pdf;
 using TesseractOCR;
 using TesseractOCR.Enums;
 
 namespace SICA.Tools.TextExtraction.Implementations;
 
-internal class PdfTextExtractionStrategy : ITextExtractionStrategy
+internal sealed class PdfTextExtractionStrategy : ITextExtractionStrategy
 {
     private readonly TextExtractionSettings _options;
 
@@ -18,7 +18,7 @@ internal class PdfTextExtractionStrategy : ITextExtractionStrategy
 
     public string Types => TextExtractionFileType.Pdf;
 
-    public Task<Result<string>> ExtractTextAsync(
+    public Task<Result<TextExtractionResponseDto>> ExtractTextAsync(
         Stream inputStream,
         TextExtractionLanguage language = TextExtractionLanguage.English,
         CancellationToken cancellationToken = default)
@@ -26,7 +26,9 @@ internal class PdfTextExtractionStrategy : ITextExtractionStrategy
         using var engine = new Engine(_options.TesseractDataPath, GetLanguage(language));
         List<string> contents = [];
 
+#pragma warning disable CA1416 // Validate platform compatibility
         var pages = PDFtoImage.Conversion.ToImages(inputStream);
+#pragma warning restore CA1416 // Validate platform compatibility
         foreach (var page in pages)
         {
             using var data = page.Encode(SKEncodedImageFormat.Png, 100);
@@ -41,12 +43,16 @@ internal class PdfTextExtractionStrategy : ITextExtractionStrategy
         var mergedContents = string.Join("\n", contents);
         if (string.IsNullOrWhiteSpace(mergedContents))
         {
-            var failureResult = Result.Failure<string>(
+            var failureResult = Result<TextExtractionResponseDto>.Failure(
                 "Extracted text is empty.");
             return Task.FromResult(failureResult);
         }
 
-        var result = Result.Success(mergedContents);
+        var result = Result<TextExtractionResponseDto>.Success(new TextExtractionResponseDto
+        {
+            Content = mergedContents,
+            ContentType = "application/pdf"
+        });
         return Task.FromResult(result);
     }
 

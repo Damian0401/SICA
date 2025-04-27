@@ -1,17 +1,18 @@
-using SICA.Api.Features.Files.Dtos;
+using SICA.Api.Dtos;
 using SICA.Tools.VectorStore.Dtos;
 
 namespace SICA.Api.Features.Files.Search.Contracts;
 
-public record SearchFilesResponse(IEnumerable<SearchFilesResponse.File> Files)
+public record SearchFilesResponse(IEnumerable<SearchFilesResponse.File> Files, uint Limit)
 {
     public int Count => Files.Count();
-    public record File(Guid Id, string FileName, float Score, string Content);
+    public record File(Guid Id, string FileName, DateTimeOffset CreatedAt, float Score);
 
-    public static SearchFilesResponse FromDto(VectorStoreSearchResultDto<FilePayload> dto)
+    public static SearchFilesResponse FromDto(VectorStoreSearchResultDto<FilePayload> dto, uint limit)
     {
         return new SearchFilesResponse(
             dto.Payloads.Select(x =>
-                new File(x.Id, x.Payload.FileName, x.Score, x.Payload.Content)));
+                new File(x.Id, x.Payload.FileName, x.Payload.CreatedAt, x.Score)), 
+                limit);
     }
 }

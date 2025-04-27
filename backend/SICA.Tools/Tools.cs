@@ -1,8 +1,10 @@
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
+using SICA.Tools.BlobStore;
 using SICA.Tools.TextExtraction;
 using SICA.Tools.TextExtraction.Implementations;
 using SICA.Tools.VectorStore;
@@ -27,9 +29,19 @@ public static class Tools
         builder.Services.AddEmbeddingGenerator(new OllamaEmbeddingGenerator(
             new Uri(vectorStoreSettings.EmbeddingModelUrl),
             modelId: vectorStoreSettings.EmbeddingModelId));
-        builder.Services.AddTransient<QdrantClient>(
+        builder.Services.AddTransient(
             _ => new QdrantClient(
                 new Uri(vectorStoreSettings.QdrantUrl), 
                 apiKey: vectorStoreSettings.QdrantApiKey));
+        
+        // BlobStore
+        builder.Services.AddOptions<BlobStoreSettings>().BindConfiguration(BlobStoreSettings.SectionName);
+        var blobStoreSettings = builder.Configuration.GetSection(BlobStoreSettings.SectionName).Get<BlobStoreSettings>();
+        ArgumentNullException.ThrowIfNull(blobStoreSettings);
+        builder.Services.AddTransient<IBlobStore, BlobStore.BlobStore>();
+        builder.Services.AddAzureClients(builder =>
+        {
+            builder.AddBlobServiceClient(blobStoreSettings.ConnectionString);
+        });
     }
 }

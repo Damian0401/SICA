@@ -1,8 +1,7 @@
-using SICA.Api.Features.Files.Dtos;
+using SICA.Api.Dtos;
 using SICA.Api.Features.Files.Search.Contracts;
 using SICA.Common.Shared;
 using SICA.Tools.VectorStore;
-using SICA.Tools.VectorStore.Dtos;
 
 namespace SICA.Api.Features.Files.Search;
 
@@ -35,20 +34,19 @@ public class SearchFiles
         SearchFilesRequest.Params @params,
         SearchFilesRequest.Services services)
     {
-        var options = new IVectorStore.VectorStoreSearchOptions
+        var limit = @params.Limit ?? SearchFilesConstants.DefaultLimit;
+        var options = new IVectorStore.SearchOptions
         {
-            CollectionName = services.ApiSettings.Value.FilesCollectionName
+            Key = @params.Query,
+            CollectionName = services.ApiSettings.Value.FilesCollectionName,
+            Limit = limit,
         };
-        if (@params.Count.HasValue)
-        {
-            options.MatchesCount = @params.Count.Value;
-        }
-        return services.VectorStore.SearchAsync<FilePayload>(@params.Query, options)
+        return services.VectorStore.SearchAsync<FilePayload>(options)
             .MatchAsync(
                 onSuccess: result =>
-                    Result.Success(SearchFilesResponse.FromDto(result)),
+                    Result<SearchFilesResponse>.Success(SearchFilesResponse.FromDto(result, limit)),
                 onFailure: message =>
-                    Result.Failure<SearchFilesResponse>(message));
+                    Result<SearchFilesResponse>.Failure(message));
     }
 
     private static IResult HandleError(
@@ -62,6 +60,6 @@ public class SearchFiles
             "Failed to search for query '{Query}': {Message}.",
             query,
             message);
-        return Results.BadRequest($"Failed to search for query '{query}'");
+        return Results.Problem($"Failed to search for query '{query}'", statusCode: StatusCodes.Status400BadRequest);
     }
 }

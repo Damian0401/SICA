@@ -5,11 +5,12 @@ using Microsoft.Extensions.Options;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using SICA.Common.Shared;
+using SICA.Tools.Abstraction;
 using SICA.Tools.VectorStore.Dtos;
 
 namespace SICA.Tools.VectorStore;
 
-internal class VectorStore : IVectorStore
+internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
 {
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly QdrantClient _qdrantClient;
@@ -28,13 +29,11 @@ internal class VectorStore : IVectorStore
         _logger = logger;
     }
 
-    public async Task<Result<Guid>> SaveAsync<T>(
-        string key,
-        T payload,
-        IVectorStore.VectorStoreSaveOptions options,
+    public Task<Result<Guid>> SaveAsync<T>(
+        IVectorStore.SaveOptions<T> options,
         CancellationToken cancellationToken = default)
     {
-        try
+        return SafeExecuteAsync(async () =>
         {
             var alreadyExists = await _qdrantClient.CollectionExistsAsync(
                 options.CollectionName,
@@ -48,41 +47,35 @@ internal class VectorStore : IVectorStore
                         Distance = Distance.Cosine
                     }, cancellationToken: cancellationToken);
             }
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, $"Failed to initialize vector store: {e.Message}.");
-            return Result.Failure<Guid>("Failed to initialize vector store.");
-        }
 
-        var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
-            key,
-            cancellationToken: cancellationToken);
+            var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
+                options.Key,
+                cancellationToken: cancellationToken);
 
-        var pointId = Guid.CreateVersion7();
-        var point = new PointStruct
-        {
-            Id = pointId,
-            Vectors = vector.ToArray(),
-            Payload =
+            var pointId = Guid.CreateVersion7();
+            var point = new PointStruct
             {
-                ["data"] = JsonSerializer.Serialize(payload)
-            }
-        };
-        await _qdrantClient.UpsertAsync(
-            options.CollectionName,
-            [point],
-            cancellationToken: cancellationToken);
+                Id = pointId,
+                Vectors = vector.ToArray(),
+                Payload =
+                {
+                    ["data"] = JsonSerializer.Serialize(options.Payload)
+                }
+            };
+            await _qdrantClient.UpsertAsync(
+                options.CollectionName,
+                [point],
+                cancellationToken: cancellationToken);
 
-        return Result.Success(pointId);
+            return Result<Guid>.Success(pointId);
+        }, _logger);
     }
 
     public async Task<Result> DeleteByIdsAsync(
-        IEnumerable<Guid> ids,
-        IVectorStore.VectorStoreDeleteOptions options,
+        IVectorStore.DeleteOptions options,
         CancellationToken cancellationToken = default)
     {
-        foreach (var id in ids)
+        foreach (var id in options.Ids)
         {
             await _qdrantClient.DeleteAsync(
                 options.CollectionName,
@@ -92,41 +85,42 @@ internal class VectorStore : IVectorStore
         return Result.Success();
     }
 
-    public async Task<Result<VectorStoreSearchResultDto<T>>> SearchAsync<T>(
-        string key,
-        IVectorStore.VectorStoreSearchOptions options,
+    public Task<Result<VectorStoreSearchResultDto<T>>> SearchAsync<T>(
+        IVectorStore.SearchOptions options,
         CancellationToken cancellationToken = default)
     {
-        var collectionExists = await _qdrantClient.CollectionExistsAsync(
-            options.CollectionName,
-            cancellationToken);
-        if (!collectionExists)
+        return SafeExecuteAsync(async () =>
         {
-            _logger.LogError("Collection {CollectionName} does not exist.", options.CollectionName);
-            return Result.Failure<VectorStoreSearchResultDto<T>>(
-                $"Collection {options.CollectionName} does not exist.");
-        }
+            var collectionExistsResult = await CheckCollectionExistsAsync(
+                options.CollectionName,
+                cancellationToken);
+            if (collectionExistsResult.IsFailure)
+            {
+                return Result<VectorStoreSearchResultDto<T>>.Failure(
+                    collectionExistsResult);
+            }
 
-        var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
-            key,
-            cancellationToken: cancellationToken);
+            var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
+                options.Key,
+                cancellationToken: cancellationToken);
 
-        var points = await _qdrantClient.SearchAsync(
-            options.CollectionName,
-            vector,
-            limit: options.MatchesCount,
-            cancellationToken: cancellationToken);
+            var points = await _qdrantClient.SearchAsync(
+                options.CollectionName,
+                vector,
+                limit: options.Limit,
+                cancellationToken: cancellationToken);
 
-        var dtos = points.Select(GetVectorData<T>);
+            var dtos = points.Select(GetVectorDataWithScore<T>);
 
-        return dtos.MatchAll(
-            onSuccess: values => Result.Success(
-                new VectorStoreSearchResultDto<T>(values)),
-            onFailure: (IEnumerable<string> errors) => Result.Failure<VectorStoreSearchResultDto<T>>(
-                $"[{string.Join(", ", errors)}]"));
+            return dtos.MatchAll(
+                onSuccess: values => Result<VectorStoreSearchResultDto<T>>.Success(
+                    new VectorStoreSearchResultDto<T>(values)),
+                onFailure: (IEnumerable<string> errors) => Result<VectorStoreSearchResultDto<T>>.Failure(
+                    $"[{string.Join(", ", errors)}]"));
+        }, _logger);
     }
 
-    private Result<VectorStoreSearchResultDto<T>.Result<T>> GetVectorData<T>(ScoredPoint p)
+    private Result<VectorStoreSearchResultDto<T>.Result<T>> GetVectorDataWithScore<T>(ScoredPoint p)
     {
         var id = Guid.Parse(p.Id.Uuid);
         var data = p.Payload["data"].StringValue;
@@ -135,13 +129,111 @@ internal class VectorStore : IVectorStore
         {
             var payload = JsonSerializer.Deserialize<T>(data)!;
             var result = new VectorStoreSearchResultDto<T>.Result<T>(id, p.Score, payload);
-            return Result.Success(result);
+            return Result<VectorStoreSearchResultDto<T>.Result<T>>.Success(result);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Failed to deserialize vector {Data}: {Message}.", data, e.Message);
-            return Result.Failure<VectorStoreSearchResultDto<T>.Result<T>>(
+            return Result<VectorStoreSearchResultDto<T>.Result<T>>.Failure(
                 $"Failed to deserialize vector {data}.");
         }
     }
+
+    public Task<Result<VectorStoreGetAllResultDto<T>>> GetAllAsync<T>(
+        IVectorStore.GetAllOptions options, 
+        CancellationToken cancellationToken = default)
+    {
+        return SafeExecuteAsync(async () =>
+        {
+            var collectionExistsResult = await CheckCollectionExistsAsync(
+                options.CollectionName,
+                cancellationToken);
+            if (collectionExistsResult.IsFailure)
+            {
+                return Result<VectorStoreGetAllResultDto<T>>.Failure(
+                    collectionExistsResult);
+            }
+            
+            var points = await _qdrantClient.ScrollAsync(
+                options.CollectionName,
+                limit: options.Limit,
+                offset: options.Offset,
+                cancellationToken: cancellationToken);
+
+            var dtos = points.Result.Select(GetVectorData<T>);
+
+            return dtos.MatchAll(
+                onSuccess: values => Result<VectorStoreGetAllResultDto<T>>.Success(
+                    new VectorStoreGetAllResultDto<T>(values)),
+                onFailure: (IEnumerable<string> errors) => Result<VectorStoreGetAllResultDto<T>>.Failure(
+                    $"[{string.Join(", ", errors)}]"));
+        }, _logger);
+    }
+
+    private Result<VectorStoreGetAllResultDto<T>.Result<T>> GetVectorData<T>(RetrievedPoint p)
+    {
+        var id = Guid.Parse(p.Id.Uuid);
+        var data = p.Payload["data"].StringValue;
+
+        try
+        {
+            var payload = JsonSerializer.Deserialize<T>(data)!;
+            var result = new VectorStoreGetAllResultDto<T>.Result<T>(id, payload);
+            return Result<VectorStoreGetAllResultDto<T>.Result<T>>.Success(result);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to deserialize vector {Data}: {Message}.", data, e.Message);
+            return Result<VectorStoreGetAllResultDto<T>.Result<T>>.Failure(
+                $"Failed to deserialize vector {data}.");
+        }
+    }
+
+    public Task<Result<T>> GetByIdAsync<T>(
+        IVectorStore.GetByIdOptions options, 
+        CancellationToken cancellationToken = default)
+    {
+        return SafeExecuteAsync(async () =>
+        {
+            var collectionExistsResult = await CheckCollectionExistsAsync(
+                options.CollectionName,
+                cancellationToken);
+            if (collectionExistsResult.IsFailure)
+            {
+                return Result<T>.Failure(
+                    collectionExistsResult);
+            }
+
+            var points = await _qdrantClient.RetrieveAsync(
+                options.CollectionName,
+                options.Id,
+                cancellationToken: cancellationToken);
+            if (points is null || points.Count == 0)
+            {
+                _logger.LogError("Point {Id} not found in collection {CollectionName}.", options.Id, options.CollectionName);
+                return Result<T>.Failure($"Point {options.Id} not found in collection {options.CollectionName}.");
+            }
+
+            var data = GetVectorData<T>(points[0]);
+            return data.Match(
+                onSuccess: result => Result<T>.Success(result.Payload),
+                onFailure: message => Result<T>.Failure(message));
+        }, _logger);
+    }
+
+    private async Task<Result> CheckCollectionExistsAsync(
+        string collectionName,
+        CancellationToken cancellationToken = default)
+    {
+        var collectionExists = await _qdrantClient.CollectionExistsAsync(
+            collectionName,
+            cancellationToken);
+        if (!collectionExists)
+        {
+            _logger.LogError("Collection '{CollectionName}' does not exist.", collectionName);
+            return Result.Failure(
+                $"Collection '{collectionName}' does not exist.");
+        }
+        return Result.Success();
+    } 
 }

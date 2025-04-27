@@ -4,7 +4,7 @@ public record Result
 {
     public required bool IsSuccess { get; init; }
     public bool IsFailure => !IsSuccess;
-    public required string? ErrorMessage { get; init; }
+    public required string ErrorMessage { get; init; }
     public required Exception? Exception { get; init; }
 
     public static Result Success()
@@ -12,7 +12,7 @@ public record Result
         return new Result
         {
             IsSuccess = true,
-            ErrorMessage = null,
+            ErrorMessage = null!,
             Exception = null
         };
     }
@@ -24,33 +24,19 @@ public record Result
         return new Result
         {
             IsSuccess = false,
-            ErrorMessage = message,
+            ErrorMessage = message!,
             Exception = exception
         };
     }
 
-    public static Result<TValue> Success<TValue>(
-        TValue value)
+    public static Result Failure(
+        Result result)
     {
-        return new Result<TValue>
-        {
-            IsSuccess = true,
-            Value = value,
-            ErrorMessage = null,
-            Exception = null
-        };
-    }
-
-    public static Result<TValue> Failure<TValue>(
-        string? message,
-        Exception? exception = null)
-    {
-        return new Result<TValue>
+        return new Result
         {
             IsSuccess = false,
-            Value = default,
-            ErrorMessage = message,
-            Exception = exception
+            ErrorMessage = result.ErrorMessage,
+            Exception = result.Exception
         };
     }
 
@@ -76,10 +62,59 @@ public record Result
 public record Result<TValue>
 {
     public required bool IsSuccess { get; init; }
-    public required TValue? Value { get; init; }
-    public required string? ErrorMessage { get; init; }
+    public required TValue Value { get; init; }
+    public required string ErrorMessage { get; init; }
     public required Exception? Exception { get; init; }
     public bool IsFailure => !IsSuccess;
+
+    public static Result<TValue> Success(
+        TValue value)
+    {
+        return new Result<TValue>
+        {
+            IsSuccess = true,
+            Value = value,
+            ErrorMessage = null!,
+            Exception = null
+        };
+    }
+
+    public static Result<TValue> Failure(
+        string? message,
+        Exception? exception = null)
+    {
+        return new Result<TValue>
+        {
+            IsSuccess = false,
+            Value = default!,
+            ErrorMessage = message!,
+            Exception = exception
+        };
+    }
+
+    public static Result<TValue> Failure(
+        Result result)
+    {
+        return new Result<TValue>
+        {
+            IsSuccess = false,
+            Value = default!,
+            ErrorMessage = result.ErrorMessage,
+            Exception = result.Exception
+        };
+    }
+
+    public static Result<TValue> Failure<TOther>(
+        Result<TOther> result)
+    {
+        return new Result<TValue>
+        {
+            IsSuccess = false,
+            Value = default!,
+            ErrorMessage = result.ErrorMessage,
+            Exception = result.Exception
+        };
+    }
 
     public TResult Match<TResult>(
         Func<TValue, TResult> onSuccess,
@@ -192,41 +227,5 @@ public static class ResultExtensions
 
         var values = resultsList.Select(r => r.Value!);
         return onSuccess(values);
-    }
-
-    public static async Task<TResult> MatchAllAsync<TResult>(
-        this IEnumerable<Task<Result>> resultTasks,
-        Func<TResult> onSuccess,
-        Func<IEnumerable<string>, TResult> onFailure)
-    {
-        var results = await Task.WhenAll(resultTasks);
-        return MatchAll(results, onSuccess, onFailure);
-    }
-
-    public static async Task<TResult> MatchAllAsync<TResult>(
-        this IEnumerable<Task<Result>> resultTasks,
-        Func<TResult> onSuccess,
-        Func<IEnumerable<Tuple<string, Exception>>, TResult> onFailure)
-    {
-        var results = await Task.WhenAll(resultTasks);
-        return MatchAll(results, onSuccess, onFailure);
-    }
-
-    public static async Task<TResult> MatchAllAsync<TResult, TValue>(
-        this IEnumerable<Task<Result<TValue>>> resultTasks,
-        Func<IEnumerable<TValue>, TResult> onSuccess,
-        Func<IEnumerable<string>, TResult> onFailure)
-    {
-        var results = await Task.WhenAll(resultTasks);
-        return MatchAll(results, onSuccess, onFailure);
-    }
-
-    public static async Task<TResult> MatchAllAsync<TResult, TValue>(
-        this IEnumerable<Task<Result<TValue>>> resultTasks,
-        Func<IEnumerable<TValue>, TResult> onSuccess,
-        Func<IEnumerable<Tuple<string, Exception>>, TResult> onFailure)
-    {
-        var results = await Task.WhenAll(resultTasks);
-        return MatchAll(results, onSuccess, onFailure);
     }
 }

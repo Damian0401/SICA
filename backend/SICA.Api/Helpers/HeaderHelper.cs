@@ -8,7 +8,7 @@ internal static class HeaderHelper
     {
         if (string.IsNullOrWhiteSpace(headerValue))
         {
-            return Result.Failure<IEnumerable<AcceptLanguagePart>>(
+            return Result<IEnumerable<AcceptLanguagePart>>.Failure(
                 "Accept-Language header is empty.");
         }
 
@@ -27,9 +27,9 @@ internal static class HeaderHelper
 
         if (!parts.Any())
         {
-            return Result.Failure<IEnumerable<AcceptLanguagePart>>("Accept-Language header is empty.");
+            return Result<IEnumerable<AcceptLanguagePart>>.Failure("Accept-Language header is empty.");
         }
-        return Result.Success(parts.AsEnumerable());
+        return Result<IEnumerable<AcceptLanguagePart>>.Success(parts.AsEnumerable());
     }
 
     internal record AcceptLanguagePart(string Language, float Value = 1f);

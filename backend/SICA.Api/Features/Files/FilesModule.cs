@@ -1,3 +1,5 @@
+using SICA.Api.Features.Files.Download;
+using SICA.Api.Features.Files.GetAll;
 using SICA.Api.Features.Files.Search;
 using SICA.Api.Features.Files.Upload;
 
@@ -11,7 +13,9 @@ public static class FilesModule
     {
         var group = app.MapGroup("/api/v1/files").WithTags(Name);
         group.MapPost("/", UploadFiles.HandleAsync).DisableAntiforgery();
-        group.MapGet("/", SearchFiles.HandleAsync);
+        group.MapGet("/", GetAllFiles.HandleAsync);
+        group.MapGet("/search", SearchFiles.HandleAsync);
+        group.MapGet("/{fileId:guid}/download", DownloadFile.HandleAsync);
         return group;
     }
 }

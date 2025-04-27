@@ -13,7 +13,7 @@ public class SearchFilesRequest
         public required string Query { get; init; }
 
         [FromQuery]
-        public ulong? Count { get; init; } = 3;
+        public uint? Limit { get; init; }
 
         internal class Validator : AbstractValidator<Params>
         {
@@ -21,8 +21,9 @@ public class SearchFilesRequest
             {
                 RuleFor(x => x.Query)
                     .NotEmpty()
-                    .Length(3, 1000);
-                RuleFor(x => x.Count)
+                    .Length(3, 5000);
+                RuleFor(x => x.Limit)
+                    .GreaterThan(0u)
                     .LessThanOrEqualTo(10u);
             }
         }
