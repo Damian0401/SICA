@@ -21,7 +21,7 @@ public interface IVectorStore
     {
         public required string CollectionName { get; init; }
         public uint Limit { get; set; } = 100;
-        public uint Offset { get; set; } = 0;
+        public Guid? Offset { get; set; }
     };
     public record GetByIdOptions
     {
