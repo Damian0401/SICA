@@ -13,16 +13,13 @@ public class GetAllFilesRequest
         public uint? Limit { get; init; }
 
         [FromQuery]
-        public uint? Offset { get; init; }
+        public Guid? Offset { get; init; }
 
         internal class Validator : AbstractValidator<Params>
         {
             public Validator()
             {
                 RuleFor(x => x.Limit)
-                    .LessThanOrEqualTo(100u)
-                    .GreaterThan(0u);
-                RuleFor(x => x.Offset)
                     .LessThanOrEqualTo(100u)
                     .GreaterThan(0u);
             }

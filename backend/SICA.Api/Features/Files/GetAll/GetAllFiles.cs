@@ -34,7 +34,7 @@ public class GetAllFiles
         GetAllFilesRequest.Services services)
     {
         var limit = @params.Limit ?? GetAllFilesConstants.DefaultLimit;
-        var offset = @params.Offset ?? GetAllFilesConstants.DefaultOffset;
+        var offset = @params.Offset;
         var options = new IVectorStore.GetAllOptions
         {
             CollectionName = services.ApiSettings.Value.FilesCollectionName,
