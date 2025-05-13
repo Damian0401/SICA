@@ -49,7 +49,7 @@ public class UploadFiles
             var extractResult = await ExtractTextAsync(
                 formFile.FileName,
                 extractStream,
-                language,
+                SupportedLanguages[language],
                 strategies,
                 services);
             if (extractResult.IsFailure)
@@ -67,7 +67,7 @@ public class UploadFiles
             await using var saveStream = new MemoryStream(buffer);
             var saveResult = await SaveResultAsync(
                 extractResult.Value!, 
-                @params.AcceptLanguage, 
+                language, 
                 formFile.FileName,
                 saveStream,
                 services);
@@ -134,7 +134,7 @@ public class UploadFiles
 
     private static async Task<Result<Guid>> SaveResultAsync(
         TextExtractionResponseDto responseDto,
-        string? contentLanguage,
+        string contentLanguage,
         string fileName,
         Stream fileStream,
         UploadFilesRequest.Services services)
@@ -209,26 +209,26 @@ public class UploadFiles
         {"en-US", TextExtractionLanguage.English},
         {"pl-PL", TextExtractionLanguage.Polish}
     };
-    private static TextExtractionLanguage GetRequestLanguage(
+    private static string GetRequestLanguage(
         string? acceptLanguage,
         ApiSettings apiSettings)
     {
         if (string.IsNullOrWhiteSpace(acceptLanguage))
         {
-            return SupportedLanguages[apiSettings.DefaultAcceptLanguage];
+            return apiSettings.DefaultAcceptLanguage;
         }
 
         var acceptLanguageResult = HeaderHelper.ParseAcceptLanguage(acceptLanguage);
         if (acceptLanguageResult.IsFailure)
         {
-            return SupportedLanguages[apiSettings.DefaultAcceptLanguage];
+            return apiSettings.DefaultAcceptLanguage;
         }
 
         var selectedAcceptLanguage = acceptLanguageResult.Value!
             .OrderByDescending(a => a.Value)
             .Select(a => a.Language)
             .FirstOrDefault(a => SupportedLanguages.ContainsKey(a), apiSettings.DefaultAcceptLanguage);
-        return SupportedLanguages[selectedAcceptLanguage];
+        return selectedAcceptLanguage;
     }
 
     private static async Task<byte[]> GetBytesAsync(
