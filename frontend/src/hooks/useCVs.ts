@@ -46,7 +46,7 @@ export function useCVs() {
           // Default to current date if parsing fails
           uploadDate = new Date();
         }
-        
+
         return {
           id: file.id,
           name: file.name || file.fileName, // Use fileName if name is not available

@@ -9,6 +9,7 @@ using SICA.Tools.BlobStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 var corsPolicy = new CorsPolicyBuilder()
     .AllowAnyHeader()
     .AllowAnyMethod()
@@ -16,11 +17,19 @@ var corsPolicy = new CorsPolicyBuilder()
     .Build();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(corsPolicy);
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
 });
 
 builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
+
+builder.Services.AddAuthorization(); // Add this line
 
 builder.Services.AddOptions<ApiSettings>().BindConfiguration(ApiSettings.SectionName);
 builder.Services.AddSingleton(TimeProvider.System);
@@ -34,6 +43,10 @@ app.MapScalarApiReference();
 
 app.MapFilesModule();
 
-app.UseCors();
+app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
+
+app.UseAuthorization();
 
 app.Run();

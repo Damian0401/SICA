@@ -38,6 +38,10 @@ services:
         VectorStore__QdrantApiKey: ${QDRANT_API_KEY}
         SemanticVectorGenerator__OllamaUrl: http://ollama:11434
         BlobStore__ConnectionString: DefaultEndpointsProtocol=http;AccountName=${AZURITE_ACCOUNT_NAME};AccountKey=${AZURITE_ACCOUNT_KEY};BlobEndpoint=http://azurite:10000/${AZURITE_ACCOUNT_NAME};
+      depends_on:
+        - ollama
+        - qdrant
+        - azurite
     frontend:
       build:
         context: ./frontend

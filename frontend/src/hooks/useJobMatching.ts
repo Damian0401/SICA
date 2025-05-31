@@ -33,14 +33,14 @@ export function useJobMatching() {
     try {
       // Try to use the API search function
       const apiResults = await fileService.searchFiles(jobDescription);
-      
       if (apiResults.length > 0) {
         // Map API results to match results
         // Note: This assumes the API returns match percentages - adapt as needed
         const matchResults: MatchResult[] = apiResults.map(file => {
           // Find the corresponding CV in our local list
           const matchedCV = cvs.find(cv => cv.id === file.id);
-          
+          matchedCV.summary = file.summary ? file.summary : ""
+
           // If we don't have this CV locally, create a temporary one
           const cv: CV = matchedCV || {
             id: file.id,
@@ -48,7 +48,7 @@ export function useJobMatching() {
             fileName: file.fileName,
             uploadDate: new Date(file.uploadDate),
             score: file.score,
-            summary: file.summary || "",
+            summary: file.summary,
           };
           
           const matchPercentage = typeof file.score === "string"
