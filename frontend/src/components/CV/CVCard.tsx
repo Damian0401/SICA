@@ -83,8 +83,7 @@ const CVCard: React.FC<CVCardProps> = ({ cv, onDelete }) => {
                   <p className="text-sm text-gray-700">{cv.summary}</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-            
+            </TooltipProvider>            
           )}
         </div>
       </div>
