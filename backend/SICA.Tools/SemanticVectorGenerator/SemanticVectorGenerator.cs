@@ -34,6 +34,10 @@ internal class SemanticVectorGenerator : BaseSafeTool<SemanticVectorGenerator>, 
                 new ChatMessage(ChatRole.System, prompt),
                 new ChatMessage(ChatRole.User, text)
             ],
+            new ChatOptions
+            {
+                Temperature = 0,
+            },
             cancellationToken: cancellationToken);
 
 
