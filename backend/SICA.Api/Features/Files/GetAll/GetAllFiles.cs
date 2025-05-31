@@ -51,7 +51,7 @@ public class GetAllFiles
 
     private static IResult HandleError(
         string message,
-        Exception exception,
+        Exception? exception,
         ILogger<GetAllFiles> logger)
     {
         logger.LogError(

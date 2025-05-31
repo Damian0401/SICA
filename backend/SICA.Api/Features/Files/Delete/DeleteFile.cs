@@ -1,16 +1,16 @@
 using SICA.Api.Dtos;
-using SICA.Api.Features.Files.Upload.Contracts;
+using SICA.Api.Features.Files.Delete.Contracts;
 using SICA.Common.Shared;
 using SICA.Tools.BlobStore;
 using SICA.Tools.VectorStore;
 
-namespace SICA.Api.Features.Files.Download;
+namespace SICA.Api.Features.Files.Delete;
 
-public class DownloadFile
+public class DeleteFile
 {
     public static Task<IResult> HandleAsync(
-        [AsParameters] DownloadFileRequest.Params @params,
-        [AsParameters] DownloadFileRequest.Services services)
+        [AsParameters] DeleteFileRequest.Params @params,
+        [AsParameters] DeleteFileRequest.Services services)
     {
         var result = services.Validator.Validate(@params);
         if (!result.IsValid)
@@ -22,9 +22,7 @@ public class DownloadFile
 
         return ProcessAsync(@params, services)
             .MatchAsync(
-                onSuccess: value => Results.Stream(
-                    value.Stream, 
-                    contentType: value.ContentType),
+                onSuccess: Results.NoContent,
                 onFailure: (message, exception) =>
                     HandleError(
                         message,
@@ -32,9 +30,9 @@ public class DownloadFile
                         services.Logger));
     }
 
-    private async static Task<Result<DownloadFileResponse>> ProcessAsync(
-        DownloadFileRequest.Params @params,
-        DownloadFileRequest.Services services)
+    private static async Task<Result> ProcessAsync(
+            DeleteFileRequest.Params @params,
+            DeleteFileRequest.Services services)
     {
         var options = new IVectorStore.GetByIdOptions
         {
@@ -46,40 +44,46 @@ public class DownloadFile
             services.CancellationToken);
         if (filePayloadResult.IsFailure)
         {
-            return Result<DownloadFileResponse>.Failure(filePayloadResult);
+            return Result.Failure(filePayloadResult);
         }
-        return await DownloadFileAsync(
-            filePayloadResult.Value,
-            services);        
-    }
 
-    private static Task<Result<DownloadFileResponse>> DownloadFileAsync(
-        FilePayload filePayload,
-        DownloadFileRequest.Services services)
-    {
-        var blobOptions = new IBlobStore.GetOptions
+        var vectorDeleteOptions = new IVectorStore.DeleteOptions
         {
-            FileName = filePayload.FileId.ToString(),
-            ContainerName = services.ApiSettings.Value.FilesContainerName,
+            CollectionName = services.ApiSettings.Value.FilesCollectionName,
+            Ids = [@params.FileId]
         };
-        return services.BlobStore.GetFileAsync(blobOptions, services.CancellationToken)
-            .MatchAsync(
-                onSuccess: stream => Result<DownloadFileResponse>.Success(
-                    new DownloadFileResponse(
-                        stream,
-                        filePayload.FileName,
-                        filePayload.ContentType)),
-                onFailure: Result<DownloadFileResponse>.Failure);
+        var vectorDeleteResult = await services.VectorStore.DeleteByIdsAsync(
+            vectorDeleteOptions,
+            services.CancellationToken);
+        if (vectorDeleteResult.IsFailure)
+        {
+            return Result.Failure(vectorDeleteResult);
+        }
+
+        var blobDeleteOptions = new IBlobStore.DeleteOptions
+        {
+            ContainerName = services.ApiSettings.Value.FilesContainerName,
+            FileName = filePayloadResult.Value.FileId.ToString(),
+        };
+        var blobDeleteResult = await services.BlobStore.DeleteFileAsync(
+            blobDeleteOptions,
+            services.CancellationToken);
+        if (blobDeleteResult.IsFailure)
+        {
+            return Result.Failure(blobDeleteResult);
+        }
+
+        return Result.Success();
     }
 
     private static IResult HandleError(
         string message,
         Exception? exception,
-        ILogger<DownloadFile> logger)
+        ILogger<DeleteFile> logger)
     {
         logger.LogError(
             exception,
-            "Unable to download file: {Message}",
+            "Unable to delete file: {Message}.",
             message);
         return Results.Problem(
             message, statusCode: exception is null

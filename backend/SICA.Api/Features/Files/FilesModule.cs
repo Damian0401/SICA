@@ -1,3 +1,4 @@
+using SICA.Api.Features.Files.Delete;
 using SICA.Api.Features.Files.Download;
 using SICA.Api.Features.Files.GetAll;
 using SICA.Api.Features.Files.Search;
@@ -15,6 +16,7 @@ public static class FilesModule
         group.MapPost("/", UploadFiles.HandleAsync).DisableAntiforgery();
         group.MapGet("/", GetAllFiles.HandleAsync);
         group.MapGet("/search", SearchFiles.HandleAsync);
+        group.MapDelete("/{fileId:guid}", DeleteFile.HandleAsync);
         group.MapGet("/{fileId:guid}/download", DownloadFile.HandleAsync);
         return group;
     }

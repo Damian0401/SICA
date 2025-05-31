@@ -61,7 +61,7 @@ public class SearchFiles
 
     private static IResult HandleError(
         string message,
-        Exception exception,
+        Exception? exception,
         string query,
         ILogger<SearchFiles> logger)
     {

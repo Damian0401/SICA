@@ -40,6 +40,17 @@ public record Result
         };
     }
 
+    public static Result Failure<TResult>(
+        Result<TResult> result)
+    {
+        return new Result
+        {
+            IsSuccess = false,
+            ErrorMessage = result.ErrorMessage,
+            Exception = result.Exception
+        };
+    }
+
     public TResult Match<TResult>(
         Func<TResult> onSuccess,
         Func<string, TResult> onFailure)
@@ -51,7 +62,7 @@ public record Result
 
     public TResult Match<TResult>(
         Func<TResult> onSuccess,
-        Func<string, Exception, TResult> onFailure)
+        Func<string, Exception?, TResult> onFailure)
     {
         return IsSuccess 
             ? onSuccess()
@@ -149,7 +160,7 @@ public static class ResultExtensions
     public static async Task<TResult> MatchAsync<TResult>(
         this Task<Result> resultTask,
         Func<TResult> onSuccess,
-        Func<string, Exception, TResult> onFailure)
+        Func<string, Exception?, TResult> onFailure)
     {
         var result = await resultTask;
         return result.Match(onSuccess, onFailure);
@@ -167,7 +178,7 @@ public static class ResultExtensions
     public static async Task<TResult> MatchAsync<TResult, TValue>(
         this Task<Result<TValue>> resultTask,
         Func<TValue, TResult> onSuccess,
-        Func<string, Exception, TResult> onFailure)
+        Func<string, Exception?, TResult> onFailure)
     {
         var result = await resultTask;
         return result.Match(onSuccess, onFailure);
@@ -187,11 +198,11 @@ public static class ResultExtensions
     public static TResult MatchAll<TResult>(
         this IEnumerable<Result> results,
         Func<TResult> onSuccess,
-        Func<IEnumerable<Tuple<string, Exception>>, TResult> onFailure)
+        Func<IEnumerable<Tuple<string, Exception?>>, TResult> onFailure)
     {
         var failed = results.Where(r => r.IsFailure).ToList();
         return failed.Any() ? onFailure(failed.Select(f =>
-            Tuple.Create(f.ErrorMessage!, f.Exception!))) : onSuccess();
+            Tuple.Create(f.ErrorMessage!, f.Exception))) : onSuccess();
     }
 
     public static TResult MatchAll<TResult, TValue>(
@@ -214,7 +225,7 @@ public static class ResultExtensions
     public static TResult MatchAll<TResult, TValue>(
         this IEnumerable<Result<TValue>> results,
         Func<IEnumerable<TValue>, TResult> onSuccess,
-        Func<IEnumerable<Tuple<string, Exception>>, TResult> onFailure)
+        Func<IEnumerable<Tuple<string, Exception?>>, TResult> onFailure)
     {
         var resultsList = results.ToList();
         var failed = resultsList.Where(r => r.IsFailure)
@@ -222,7 +233,7 @@ public static class ResultExtensions
         if (failed.Any())
         {
             return onFailure(failed.Select(f =>
-                Tuple.Create(f.ErrorMessage!, f.Exception!)));
+                Tuple.Create(f.ErrorMessage!, f.Exception)));
         }
 
         var values = resultsList.Select(r => r.Value!);
