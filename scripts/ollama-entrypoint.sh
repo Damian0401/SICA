@@ -9,6 +9,7 @@ while [ "$(ollama list | grep 'NAME')" == "" ]; do
 done
 
 echo "Pull models"
-ollama pull nomic-embed-text
+ollama pull nomic-embed-text:v1.5
+ollama pull gemma3:1b
 
 wait $pid

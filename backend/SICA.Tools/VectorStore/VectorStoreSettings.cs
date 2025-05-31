@@ -6,7 +6,5 @@ public class VectorStoreSettings
 
     public required string QdrantUrl { get; init; }
     public required string QdrantApiKey { get; init; }
-    public required string EmbeddingModelUrl { get; init; }
-    public required string EmbeddingModelId { get; init; }
-    public required ulong EmbeddingModelVectorSize { get; init; }
+    public required ulong VectorSize { get; init; }
 }

@@ -30,18 +30,28 @@ public class SearchFiles
                         services.Logger));
     }
 
-    private static Task<Result<SearchFilesResponse>> ProcessAsync(
+    private async static Task<Result<SearchFilesResponse>> ProcessAsync(
         SearchFilesRequest.Params @params,
         SearchFilesRequest.Services services)
     {
+        var vectorResult = await services.SemanticVectorGenerator
+            .GenerateVectorAsync(
+                @params.Query,
+                SearchFilesConstants.Prompt,
+                services.CancellationToken);
+        if (vectorResult.IsFailure)
+        {
+            return Result<SearchFilesResponse>.Failure(vectorResult);
+        }
+
         var limit = @params.Limit ?? SearchFilesConstants.DefaultLimit;
         var options = new IVectorStore.SearchOptions
         {
-            Key = @params.Query,
+            Vector = vectorResult.Value.Vector,
             CollectionName = services.ApiSettings.Value.FilesCollectionName,
             Limit = limit,
         };
-        return services.VectorStore.SearchAsync<FilePayload>(options)
+        return await services.VectorStore.SearchAsync<FilePayload>(options)
             .MatchAsync(
                 onSuccess: result =>
                     Result<SearchFilesResponse>.Success(SearchFilesResponse.FromDto(result, limit)),

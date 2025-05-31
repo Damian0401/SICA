@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SICA.Common.Constants;
 using SICA.Tools.BlobStore;
+using SICA.Tools.SemanticVectorGenerator;
 using SICA.Tools.TextExtraction;
 using SICA.Tools.VectorStore;
 
@@ -44,6 +45,8 @@ public static class UploadFilesRequest
         public required IEnumerable<ITextExtractionStrategy> TextExtractionStrategies { get; init; }
         [FromServices]
         public required IVectorStore VectorStore { get; init; }
+        [FromServices]
+        public required ISemanticVectorGenerator SemanticVectorGenerator { get; init; }
         [FromServices]
         public required IBlobStore BlobStore { get; init; }
         [FromServices]

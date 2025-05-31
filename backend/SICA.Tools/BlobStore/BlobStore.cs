@@ -14,6 +14,7 @@ internal sealed class BlobStore : BaseSafeTool<BlobStore>, IBlobStore
     public BlobStore(
         BlobServiceClient blobServiceClient,
         ILogger<BlobStore> logger)
+        : base(logger)
     {
         _blobServiceClient = blobServiceClient;
         _logger = logger;
@@ -34,7 +35,7 @@ internal sealed class BlobStore : BaseSafeTool<BlobStore>, IBlobStore
                 return Result.Failure($"File {options.FileName} not found.");
             }
             return Result.Success();
-        }, _logger);
+        });
     }
 
     public Task<Result<Stream>> GetFileAsync(
@@ -59,7 +60,7 @@ internal sealed class BlobStore : BaseSafeTool<BlobStore>, IBlobStore
             }
             var blobDownloadInfo = await blobClient.DownloadAsync(cancellationToken: cancellationToken);
             return Result<Stream>.Success(blobDownloadInfo.Value.Content);
-        }, _logger);
+        });
     }
 
     public Task<Result> SaveFileAsync(
@@ -75,7 +76,7 @@ internal sealed class BlobStore : BaseSafeTool<BlobStore>, IBlobStore
             var blobClient = containerClient.GetBlobClient(options.FileName);
             await blobClient.UploadAsync(fileStream, cancellationToken: cancellationToken);
             return Result.Success();
-        }, _logger);
+        });
     }
 
     

@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using SICA.Tools.SemanticVectorGenerator;
 using SICA.Tools.VectorStore;
 
 namespace SICA.Api.Features.Files.Search.Contracts;
@@ -33,6 +34,8 @@ public class SearchFilesRequest
     {
         [FromServices]
         public required IVectorStore VectorStore { get; init; }
+        [FromServices]
+        public required ISemanticVectorGenerator SemanticVectorGenerator { get; init; }
         [FromServices]
         public required IOptions<ApiSettings> ApiSettings { get; init; }
         [FromServices]

@@ -139,9 +139,19 @@ public class UploadFiles
         Stream fileStream,
         UploadFilesRequest.Services services)
     {
+        var vectorResult = await services.SemanticVectorGenerator.GenerateVectorAsync(
+            responseDto.Content,
+            UploadFilesConstants.Prompt,
+            services.CancellationToken);
+        if (vectorResult.IsFailure)
+        {
+            return Result<Guid>.Failure(vectorResult);
+        }
+
         var payload = new FilePayload
         {
             FileName = fileName,
+            Summary = vectorResult.Value.Summary,
             CreatedAt = services.TimeProvider.GetUtcNow(),
             ContentLanguage = contentLanguage,
             ContentType = responseDto.ContentType,
@@ -149,7 +159,7 @@ public class UploadFiles
         };
         var saveOptions = new IVectorStore.SaveOptions<FilePayload>
         {
-            Key = responseDto.Content,
+            Vector = vectorResult.Value.Vector,
             Payload = payload,
             CollectionName = services.ApiSettings.Value.FilesCollectionName
         };
@@ -158,10 +168,9 @@ public class UploadFiles
             services.CancellationToken);
         if (vectorSaveResult.IsFailure)
         {
-            return Result<Guid>.Failure(
-                vectorSaveResult.ErrorMessage,
-                vectorSaveResult.Exception);
+            return Result<Guid>.Failure(vectorSaveResult);
         }
+
         var blobSaveOptions = new IBlobStore.SaveOptions
         {
             FileName = payload.FileId.ToString(),
@@ -181,9 +190,7 @@ public class UploadFiles
             await services.VectorStore.DeleteByIdsAsync(
                 deleteOptions,
                 services.CancellationToken);
-            return Result<Guid>.Failure(
-                blobSaveResult.ErrorMessage,
-                blobSaveResult.Exception);
+            return Result<Guid>.Failure(blobSaveResult);
         }
         return Result<Guid>.Success(vectorSaveResult.Value);
     }

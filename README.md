@@ -1,6 +1,3 @@
-# TODO
-todo
-
 ## Run docker compose
 ```bash
 ./build-and-run.ps1

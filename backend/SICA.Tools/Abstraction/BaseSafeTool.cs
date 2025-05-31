@@ -6,7 +6,14 @@ namespace SICA.Tools.Abstraction;
 internal abstract class BaseSafeTool<TTool>
     where TTool : class
 {
-    protected async Task<Result<TResult>> SafeExecuteAsync<TResult>(Func<Task<Result<TResult>>> func, ILogger<TTool> logger)
+    protected readonly ILogger<TTool> Logger;
+
+    protected BaseSafeTool(ILogger<TTool> logger)
+    {
+        Logger = logger;
+    }
+
+    protected async Task<Result<TResult>> SafeExecuteAsync<TResult>(Func<Task<Result<TResult>>> func)
     {
         try
         {
@@ -14,12 +21,12 @@ internal abstract class BaseSafeTool<TTool>
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred: {Message}", ex.Message);
-            return Result<TResult>.Failure($"An error occurred: {ex.Message}");
+            Logger.LogError(ex, "An error occurred: {Message}", ex.Message);
+            return Result<TResult>.Failure($"An error occurred: {ex.Message}", ex);
         }
     }
 
-    protected async Task<Result> SafeExecuteAsync(Func<Task<Result>> func, ILogger<TTool> logger)
+    protected async Task<Result> SafeExecuteAsync(Func<Task<Result>> func)
     {
         try
         {
@@ -27,8 +34,8 @@ internal abstract class BaseSafeTool<TTool>
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred: {Message}", ex.Message);
-            return Result.Failure($"An error occurred: {ex.Message}");
+            Logger.LogError(ex, "An error occurred: {Message}", ex.Message);
+            return Result.Failure($"An error occurred: {ex.Message}", ex);
         }
     }
 }

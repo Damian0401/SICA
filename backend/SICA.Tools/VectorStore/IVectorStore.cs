@@ -15,7 +15,7 @@ public interface IVectorStore
     {
         public required string CollectionName { get; init; }
         public required T Payload { get; init; }
-        public required string Key { get; init; }
+        public required float[] Vector { get; init; }
     }
     public record GetAllOptions
     {
@@ -36,7 +36,7 @@ public interface IVectorStore
     public record SearchOptions
     {
         public required string CollectionName { get; init; }
-        public required string Key { get; init; }
+        public required float[] Vector { get; init; }
         public required uint Limit { get; init; }
     }
 }

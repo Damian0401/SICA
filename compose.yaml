@@ -36,7 +36,7 @@ services:
       environment:
         VectorStore__QdrantUrl: http://qdrant:6334
         VectorStore__QdrantApiKey: ${QDRANT_API_KEY}
-        VectorStore__EmbeddingModelUrl: http://ollama:11434
+        SemanticVectorGenerator__OllamaUrl: http://ollama:11434
         BlobStore__ConnectionString: DefaultEndpointsProtocol=http;AccountName=${AZURITE_ACCOUNT_NAME};AccountKey=${AZURITE_ACCOUNT_KEY};BlobEndpoint=http://azurite:10000/${AZURITE_ACCOUNT_NAME};
 
 volumes:

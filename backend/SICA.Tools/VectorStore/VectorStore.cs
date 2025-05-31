@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Qdrant.Client;
@@ -12,18 +11,16 @@ namespace SICA.Tools.VectorStore;
 
 internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
 {
-    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly QdrantClient _qdrantClient;
     private readonly ILogger<VectorStore> _logger;
     private readonly VectorStoreSettings _settings;
 
     public VectorStore(
-        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         QdrantClient qdrantClient,
         IOptions<VectorStoreSettings> settings,
         ILogger<VectorStore> logger)
+        : base(logger)
     {
-        _embeddingGenerator = embeddingGenerator;
         _qdrantClient = qdrantClient;
         _settings = settings.Value;
         _logger = logger;
@@ -43,20 +40,16 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
                 await _qdrantClient.RecreateCollectionAsync(options.CollectionName,
                     new VectorParams
                     {
-                        Size = _settings.EmbeddingModelVectorSize,
+                        Size = _settings.VectorSize,
                         Distance = Distance.Cosine
                     }, cancellationToken: cancellationToken);
             }
-
-            var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
-                options.Key,
-                cancellationToken: cancellationToken);
 
             var pointId = Guid.CreateVersion7();
             var point = new PointStruct
             {
                 Id = pointId,
-                Vectors = vector.ToArray(),
+                Vectors = options.Vector,
                 Payload =
                 {
                     ["data"] = JsonSerializer.Serialize(options.Payload)
@@ -68,7 +61,7 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
                 cancellationToken: cancellationToken);
 
             return Result<Guid>.Success(pointId);
-        }, _logger);
+        });
     }
 
     public async Task<Result> DeleteByIdsAsync(
@@ -100,13 +93,9 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
                     collectionExistsResult);
             }
 
-            var vector = await _embeddingGenerator.GenerateEmbeddingVectorAsync(
-                options.Key,
-                cancellationToken: cancellationToken);
-
             var points = await _qdrantClient.SearchAsync(
                 options.CollectionName,
-                vector,
+                options.Vector,
                 limit: options.Limit,
                 cancellationToken: cancellationToken);
 
@@ -117,7 +106,7 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
                     new VectorStoreSearchResultDto<T>(values)),
                 onFailure: (IEnumerable<string> errors) => Result<VectorStoreSearchResultDto<T>>.Failure(
                     $"[{string.Join(", ", errors)}]"));
-        }, _logger);
+        });
     }
 
     private Result<VectorStoreSearchResultDto<T>.Result<T>> GetVectorDataWithScore<T>(ScoredPoint p)
@@ -167,7 +156,7 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
                     new VectorStoreGetAllResultDto<T>(values)),
                 onFailure: (IEnumerable<string> errors) => Result<VectorStoreGetAllResultDto<T>>.Failure(
                     $"[{string.Join(", ", errors)}]"));
-        }, _logger);
+        });
     }
 
     private Result<VectorStoreGetAllResultDto<T>.Result<T>> GetVectorData<T>(RetrievedPoint p)
@@ -218,7 +207,7 @@ internal sealed class VectorStore : BaseSafeTool<VectorStore>, IVectorStore
             return data.Match(
                 onSuccess: result => Result<T>.Success(result.Payload),
                 onFailure: message => Result<T>.Failure(message));
-        }, _logger);
+        });
     }
 
     private async Task<Result> CheckCollectionExistsAsync(
