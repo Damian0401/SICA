@@ -48,11 +48,12 @@ export function useJobMatching() {
             fileName: file.fileName,
             uploadDate: new Date(file.uploadDate),
             score: file.score,
+            summary: file.summary || "",
           };
           
-          // Random match percentage between 30-95% if not provided by API
-          // In a real implementation, this would come from the API
-          const matchPercentage = (file.score*100).toFixed(2) || 0;
+          const matchPercentage = typeof file.score === "string"
+            ? Number((parseFloat(file.score) * 100).toFixed(2))
+            : Number((file.score * 100).toFixed(2)) || 0;
           
           return { cv, matchPercentage };
         });

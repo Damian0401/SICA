@@ -1,5 +1,5 @@
 # Use official Node.js image for build stage
-FROM node:20-alpine AS build
+FROM node:alpine AS build
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN npm run build
 # Use Nginx to serve the production build
 FROM nginx:alpine
 
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy custom nginx config if needed
 # COPY nginx.conf /etc/nginx/nginx.conf

@@ -1,21 +1,44 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Node.js dependencies (installed inside container)
+node_modules
 
-# testing
-/coverage
+# Vite build output (built inside container during build stage)
+dist
 
-# production
-/build
+# Git version control
+.git
+.gitignore
 
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variable files (often contain secrets)
+.env
+*.local
 
+# Logs and cache files
 npm-debug.log*
-yarn-debug.log*ś
-yarn-error.log*
+yarn-debug.log*
+.vite
+.cache
+
+# Docker and compose definitions (optional)
+Dockerfile
+docker-compose.yml
+
+# IDE or editor directories
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+
+# Test artifacts
+coverage/
+test-results/
+reports/
+
+# Miscellaneous
+!public/favicon.ico  # If you specifically need this file inside the container

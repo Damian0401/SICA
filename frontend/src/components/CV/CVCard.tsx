@@ -2,9 +2,10 @@
 import React from 'react';
 import { CV } from '@/types';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Download } from 'lucide-react';
+import { FileText, Trash2, Download, Info } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { fileService } from '@/services/fileService';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface CVCardProps {
   cv: CV;
@@ -35,15 +36,23 @@ const CVCard: React.FC<CVCardProps> = ({ cv, onDelete }) => {
   };
 
   return (
-    <div className="apple-card p-4 flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center">
-          <FileText className="h-5 w-5 text-primary mr-2" />
-          <h3 className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[200px]">
-            {cv.name}
-          </h3>
+    <div className="apple-card">
+      <div  className="flex flex-row justify-between">
+        <div className="flex flex-col items-start justify-between mr-3">
+          <div className="flex items-center">
+            <FileText className="h-5 w-5 text-primary mr-2" />
+            <h3 className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[200px]">
+              {cv.name}
+            </h3>          
+          </div>
+          <div className="text-xs text-gray-500 mb-3">
+            <p className="truncate">{cv.fileName}</p>
+            <p className="mt-1">
+              Uploaded on {formatDate(cv.uploadDate)}
+            </p>
+          </div>
         </div>
-        <div className="flex">
+        <div className="flex flex-col">
           {!cv.content && cv.id && (
             <Button
               variant="ghost"
@@ -64,13 +73,20 @@ const CVCard: React.FC<CVCardProps> = ({ cv, onDelete }) => {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          {cv.summary && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="flex h-8 w-8 items-center justify-center text-gray-400 hover:text-primary">
+                  <Info className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent side='bottom' className="max-w-xs">
+                  <p className="text-sm text-gray-700">{cv.summary}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+          )}
         </div>
-      </div>
-      <div className="text-xs text-gray-500 mb-3">
-        <p className="truncate">{cv.fileName}</p>
-        <p className="mt-1">
-          Uploaded on {formatDate(cv.uploadDate)}
-        </p>
       </div>
     </div>
   );

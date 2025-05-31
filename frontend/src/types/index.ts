@@ -7,6 +7,7 @@ export type CV = {
   content?: string;
   url?: string;
   score?: number;
+  summary?: string;
 };
 
 export type MatchResult = {

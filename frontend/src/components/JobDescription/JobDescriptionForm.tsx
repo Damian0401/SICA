@@ -11,7 +11,7 @@ const JobDescriptionForm: React.FC = () => {
   const [jobDescription, setJobDescription] = useState('');
   const { cvs } = useCVs();
   const { results, searching, searchMatches } = useJobMatching();
-  
+
   const handleSearch = async () => {
     await searchMatches(jobDescription, cvs);
   };

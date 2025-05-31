@@ -51,6 +51,7 @@ export function useCVs() {
           id: file.id,
           name: file.name || file.fileName, // Use fileName if name is not available
           fileName: file.fileName,
+          summary: file.summary || "",
           uploadDate,
           // The actual content is not loaded initially
         };

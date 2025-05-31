@@ -12,6 +12,7 @@ export interface FileResponse {
   uploadDate?: string;
   url?: string;
   score?: number;
+  summary?: string;
 }
 
 export interface FilesApiResponse {
@@ -27,6 +28,8 @@ const MOCK_RESPONSE: FilesApiResponse = {
     {
       "id":"0196bfd2-bfb6-7b16-a05b-2dc7878d9c64",
       "fileName":"SZYMON LEJA_CV.pdf",
+      "summary":"Experienced software developer with a focus on backend technologies and cloud solutions. Proficient in Java, Spring Boot, and AWS. Strong problem-solving skills and a passion for clean code.",
+      "name":"SZYMON LEJA",
       "contentLanguage":"en-US,en;q=0.9,pl-PL;q=0.8,pl;q=0.7",
       "createdAt":"2025-05-11T14:49:40.2476801+00:00"
     },
