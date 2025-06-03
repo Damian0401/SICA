@@ -1,4 +1,3 @@
-
 import { CV } from "../types";
 
 const API_URL = "http://localhost:5050";
@@ -140,4 +139,25 @@ export const fileService = {
   getFileDownloadUrl: (fileId: string): string => {
     return `${API_URL}/api/v1/files/${fileId}/download`;
   },
+
+  /**
+   * Remove a file by ID
+   */
+  removeFile: async (fileId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/files/${fileId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`File deletion failed: ${response.status}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error removing file:', error);
+      return false;
+    }
+  },
+  
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { CV } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -112,13 +111,27 @@ export function useCVs() {
 
   const deleteCV = async (id: string) => {
     try {
-      // For now, we only remove from local state as the API doesn't provide delete
+      // Call the API to delete the CV
+      const deleteSuccessful = await fileService.removeFile(id);
+      
+      if (!deleteSuccessful) {
+        toast({
+          title: "Delete Failed",
+          description: "Failed to delete the CV from the server",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Remove from local state after successful API deletion
       setCVs((prev) => prev.filter((cv) => cv.id !== id));
       
       toast({
         title: "CV Deleted",
-        description: "The CV has been removed from the list",
+        description: "The CV has been removed successfully",
       });
+      
+      return true;
     } catch (error) {
       console.error("Error deleting CV:", error);
       toast({
@@ -126,6 +139,7 @@ export function useCVs() {
         description: "An error occurred while deleting the CV",
         variant: "destructive",
       });
+      return false;
     }
   };
 
