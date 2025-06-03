@@ -38,14 +38,14 @@ const CVCard: React.FC<CVCardProps> = ({ cv, onDelete }) => {
   return (
     <div className="apple-card">
       <div  className="flex flex-row justify-between">
-        <div className="flex flex-col items-start justify-between mr-3">
+        <div className="flex flex-col items-start justify-between mr-3 " style={{ maxWidth: '80%' }}>
           <div className="flex items-center">
             <FileText className="h-5 w-5 text-primary mr-2" />
             <h3 className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[200px]">
               {cv.name}
             </h3>          
           </div>
-          <div className="text-xs text-gray-500 mb-3">
+          <div className="text-xs text-gray-500 mb-3" style={{ maxWidth: 'inherit' }}>
             <p className="truncate">{cv.fileName}</p>
             <p className="mt-1">
               Uploaded on {formatDate(cv.uploadDate)}

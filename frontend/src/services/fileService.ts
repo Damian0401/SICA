@@ -114,7 +114,7 @@ export const fileService = {
   /**
    * Search for files by query
    */
-  searchFiles: async (query: string, limit: number = 10): Promise<FileResponse[]> => {
+  searchFiles: async (query: string, limit: number = 3): Promise<FileResponse[]> => {
     try {
       const response = await fetch(
         `${API_URL}/api/v1/files/search?Query=${encodeURIComponent(query)}&Limit=${limit}`
